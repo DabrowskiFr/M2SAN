@@ -14,23 +14,22 @@ public class MainActivityViewModel extends ViewModel {
     private static final String TAG = "MainActivityViewModel";
 
     private MutableLiveData<Boolean> mIsProgressBarUpdating = new MutableLiveData<>();
-    private MutableLiveData<MyService.MyBinder> mBinder = new MutableLiveData<>();
 
+    MyService mService;
 
     // Keeping this in here because it doesn't require a context
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder iBinder) {
             Log.d(TAG, "ServiceConnection: connected to service.");
-            // We've bound to MyService, cast the IBinder and get MyBinder instance
             MyService.MyBinder binder = (MyService.MyBinder) iBinder;
-            mBinder.postValue(binder);
+            mService = (MyService) binder.getService();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             Log.d(TAG, "ServiceConnection: disconnected from service.");
-            mBinder.postValue(null);
+            mService = null;
         }
     };
 
@@ -39,9 +38,9 @@ public class MainActivityViewModel extends ViewModel {
         return serviceConnection;
     }
 
-    public LiveData<MyService.MyBinder> getBinder(){
-        return mBinder;
-    }
+    //public LiveData<MyService.MyBinder> getBinder(){
+    //    return mBinder;
+    //}
 
 
     public LiveData<Boolean> getIsProgressBarUpdating(){
@@ -50,6 +49,35 @@ public class MainActivityViewModel extends ViewModel {
 
     public void setIsProgressBarUpdating(boolean isUpdating){
         mIsProgressBarUpdating.postValue(isUpdating);
+    }
+
+    public void toggleUpdates(){
+
+        if(mService != null){
+            if(mService.getProgress() == mService.getMaxValue()){
+                mService.resetTask();
+                //mButton.setText("Start");
+            }
+            else{
+                if(mService.getIsPaused()){
+                    mService.unPausePretendLongRunningTask();
+                    mIsProgressBarUpdating.postValue(true);
+                }
+                else{
+                    mService.pausePretendLongRunningTask();
+                    mIsProgressBarUpdating.postValue(false);
+                }
+            }
+
+        }
+    }
+
+    public int getProgress(){
+        return mService.getProgress();
+    }
+
+    public int getMaxValue(){
+        return mService.getMaxValue();
     }
 
 }

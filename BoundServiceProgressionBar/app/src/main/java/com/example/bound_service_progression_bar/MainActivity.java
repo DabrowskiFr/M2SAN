@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -27,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     // Vars
-    private MyService mService;
+    //private MyService mService;
     private MainActivityViewModel mViewModel;
 
 
@@ -47,63 +48,28 @@ public class MainActivity extends AppCompatActivity {
         mButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                toggleUpdates();
+
+                mViewModel.toggleUpdates();
             }
         });
-    }
-
-    private void toggleUpdates(){
-        if(mService != null){
-            if(mService.getProgress() == mService.getMaxValue()){
-                mService.resetTask();
-                mButton.setText("Start");
-            }
-            else{
-                if(mService.getIsPaused()){
-                    mService.unPausePretendLongRunningTask();
-                    mViewModel.setIsProgressBarUpdating(true);
-                }
-                else{
-                    mService.pausePretendLongRunningTask();
-                    mViewModel.setIsProgressBarUpdating(false);
-                }
-            }
-
-        }
     }
 
     private void setObservers(){
-        mViewModel.getBinder().observe(this, new Observer<MyService.MyBinder>() {
-            @Override
-            public void onChanged(@Nullable MyService.MyBinder myBinder) {
-                if(myBinder == null){
-                    Log.d(TAG, "onChanged: unbound from service");
-                }
-                else{
-                    Log.d(TAG, "onChanged: bound to service.");
-                    mService = myBinder.getService();
-                }
-            }
-        });
 
         mViewModel.getIsProgressBarUpdating().observe(this, new Observer<Boolean>() {
             @Override
             public void onChanged(@Nullable final Boolean aBoolean) {
-                final Handler handler = new Handler();
+                final Handler handler = new Handler(Looper.getMainLooper());
                 final Runnable runnable = new Runnable() {
                     @Override
                     public void run() {
                         if(mViewModel.getIsProgressBarUpdating().getValue()){
-                            if(mViewModel.getBinder().getValue() != null){ // meaning the service is bound
-                                if(mService.getProgress() == mService.getMaxValue()){
-                                    mViewModel.setIsProgressBarUpdating(false);
-                                }
-                                mProgressBar.setProgress(mService.getProgress());
-                                mProgressBar.setMax(mService.getMaxValue());
+                                mProgressBar.setProgress(mViewModel.getProgress());
+                                mProgressBar.setMax(mViewModel.getMaxValue());
                                 String progress =
-                                        String.valueOf(100 * mService.getProgress() / mService.getMaxValue()) + "%";
+                                        String.valueOf(100 * mViewModel.getProgress() / mViewModel.getMaxValue()) + "%";
                                 mTextView.setText(progress);
-                            }
+
                             handler.postDelayed(this, 100);
                         }
                         else{
@@ -112,14 +78,13 @@ public class MainActivity extends AppCompatActivity {
                     }
                 };
 
-                // control what the button shows
                 if(aBoolean){
                     mButton.setText("Pause");
                     handler.postDelayed(runnable, 100);
 
                 }
                 else{
-                    if(mService.getProgress() == mService.getMaxValue()){
+                    if(mViewModel.getProgress() == mViewModel.getMaxValue()){
                         mButton.setText("Restart");
                     }
                     else{
@@ -141,9 +106,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if(mViewModel.getBinder() != null){
-            unbindService(mViewModel.getServiceConnection());
-        }
+        //if(mViewModel.getBinder() != null){
+        //    unbindService(mViewModel.getServiceConnection());
+        //}
     }
 
     private void startService(){

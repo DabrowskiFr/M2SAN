@@ -5,23 +5,28 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class MyService extends Service {
 
     private static final String TAG = "MyService";
 
     private final IBinder mBinder = new MyBinder();
-    private Handler mHandler;
+    private ScheduledExecutorService backgroundExecutor;
     private int mProgress, mMaxValue;
     private Boolean mIsPaused;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        mHandler = new Handler();
+        backgroundExecutor = Executors.newSingleThreadScheduledExecutor();
         mProgress = 0;
         mIsPaused = true;
         mMaxValue = 5000;
@@ -69,17 +74,16 @@ public class MyService extends Service {
             public void run() {
                 if(mProgress >= mMaxValue || mIsPaused){
                     Log.d(TAG, "run: removing callbacks");
-                    mHandler.removeCallbacks(this); // remove callbacks from runnable
                     pausePretendLongRunningTask();
                 }
                 else{
                     Log.d(TAG, "run: progress: " + mProgress);
                     mProgress += 100; // increment the progress
-                    mHandler.postDelayed(this, 100); // continue incrementing
+                    backgroundExecutor.schedule(this, 100, TimeUnit.MILLISECONDS);
                 }
             }
         };
-        mHandler.postDelayed(runnable, 100);
+        backgroundExecutor.execute(runnable);
     }
 
     public void resetTask(){
