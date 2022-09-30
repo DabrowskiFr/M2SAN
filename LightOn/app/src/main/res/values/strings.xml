@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">LightOn</string>
+    <string name="local_button_text">Switch local light</string>
+    <string name="remote_button_text">Switch remote light</string>
+</resources>
